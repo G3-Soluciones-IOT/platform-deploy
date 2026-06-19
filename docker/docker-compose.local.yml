@@ -1,0 +1,338 @@
+name: jameofit-local
+
+services:
+  # ==================================================
+  # Databases
+  # ==================================================
+
+  iam-service-postgres:
+    image: postgres:17
+    container_name: iam-service-postgres
+    environment:
+      POSTGRES_DB: ${IAM_SERVICE_DB_NAME}
+      POSTGRES_USER: ${IAM_SERVICE_DB_USER}
+      POSTGRES_PASSWORD: ${IAM_SERVICE_DB_PASSWORD}
+    volumes:
+      - iam-service-postgres-data:/var/lib/postgresql/data
+    networks:
+      - jameofit-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${IAM_SERVICE_DB_USER} -d ${IAM_SERVICE_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  communication-service-mongodb:
+    image: mongo:7
+    container_name: communication-service-mongodb
+    environment:
+      MONGO_INITDB_DATABASE: ${COMMUNICATION_SERVICE_MONGO_DATABASE}
+      MONGO_INITDB_ROOT_USERNAME: ${COMMUNICATION_SERVICE_MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${COMMUNICATION_SERVICE_MONGO_PASSWORD}
+    ports:
+      - "${COMMUNICATION_SERVICE_MONGO_HOST_PORT}:27017"
+    volumes:
+      - communication-service-mongodb-data:/data/db
+    networks:
+      - jameofit-network
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --username \"$$MONGO_INITDB_ROOT_USERNAME\" --password \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 })' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  goals-service-postgres:
+    image: postgres:17
+    container_name: goals-service-postgres
+    environment:
+      POSTGRES_DB: ${GOALS_SERVICE_DB_NAME}
+      POSTGRES_USER: ${GOALS_SERVICE_DB_USER}
+      POSTGRES_PASSWORD: ${GOALS_SERVICE_DB_PASSWORD}
+    volumes:
+      - goals-service-postgres-data:/var/lib/postgresql/data
+    networks:
+      - jameofit-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${GOALS_SERVICE_DB_USER} -d ${GOALS_SERVICE_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  meal-plans-service-postgres:
+    image: postgres:17
+    container_name: meal-plans-service-postgres
+    environment:
+      POSTGRES_DB: ${MEAL_PLANS_SERVICE_DB_NAME}
+      POSTGRES_USER: ${MEAL_PLANS_SERVICE_DB_USER}
+      POSTGRES_PASSWORD: ${MEAL_PLANS_SERVICE_DB_PASSWORD}
+    volumes:
+      - meal-plans-service-postgres-data:/var/lib/postgresql/data
+    networks:
+      - jameofit-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MEAL_PLANS_SERVICE_DB_USER} -d ${MEAL_PLANS_SERVICE_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  profiles-service-postgres:
+    image: postgres:17
+    container_name: profiles-service-postgres
+    environment:
+      POSTGRES_DB: ${PROFILES_SERVICE_DB_NAME}
+      POSTGRES_USER: ${PROFILES_SERVICE_DB_USER}
+      POSTGRES_PASSWORD: ${PROFILES_SERVICE_DB_PASSWORD}
+    volumes:
+      - profiles-service-postgres-data:/var/lib/postgresql/data
+    networks:
+      - jameofit-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PROFILES_SERVICE_DB_USER} -d ${PROFILES_SERVICE_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  recipes-service-postgres:
+    image: postgres:17
+    container_name: recipes-service-postgres
+    environment:
+      POSTGRES_DB: ${RECIPES_SERVICE_DB_NAME}
+      POSTGRES_USER: ${RECIPES_SERVICE_DB_USER}
+      POSTGRES_PASSWORD: ${RECIPES_SERVICE_DB_PASSWORD}
+    volumes:
+      - recipes-service-postgres-data:/var/lib/postgresql/data
+    networks:
+      - jameofit-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${RECIPES_SERVICE_DB_USER} -d ${RECIPES_SERVICE_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  tracking-service-postgres:
+    image: postgres:17
+    container_name: tracking-service-postgres
+    environment:
+      POSTGRES_DB: ${TRACKING_SERVICE_DB_NAME}
+      POSTGRES_USER: ${TRACKING_SERVICE_DB_USER}
+      POSTGRES_PASSWORD: ${TRACKING_SERVICE_DB_PASSWORD}
+    volumes:
+      - tracking-service-postgres-data:/var/lib/postgresql/data
+    networks:
+      - jameofit-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TRACKING_SERVICE_DB_USER} -d ${TRACKING_SERVICE_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ==================================================
+  # Platform services
+  # ==================================================
+
+  config-service:
+    image: config-service:local
+    container_name: config-service
+    environment:
+      SPRING_PROFILES_ACTIVE: ${CONFIG_SERVICE_SPRING_PROFILES_ACTIVE}
+    ports:
+      - "${CONFIG_SERVICE_HOST_PORT}:8888"
+    networks:
+      - jameofit-network
+
+  eureka-service:
+    image: eureka-service:local
+    container_name: eureka-service
+    depends_on:
+      - config-service
+    environment:
+      CONFIG_SERVER_URI: ${CONFIG_SERVER_URI}
+    ports:
+      - "${EUREKA_SERVICE_HOST_PORT}:8761"
+    networks:
+      - jameofit-network
+
+  gateway-service:
+    image: gateway-service:local
+    container_name: gateway-service
+    depends_on:
+      - config-service
+      - eureka-service
+    environment:
+      CONFIG_SERVER_URI: ${CONFIG_SERVER_URI}
+    ports:
+      - "${GATEWAY_SERVICE_HOST_PORT}:8080"
+    networks:
+      - jameofit-network
+
+  # ==================================================
+  # Application services
+  # ==================================================
+
+  iam-service:
+    image: iam-service:local
+    container_name: iam-service
+    depends_on:
+      iam-service-postgres:
+        condition: service_healthy
+      config-service:
+        condition: service_started
+      eureka-service:
+        condition: service_started
+    environment:
+      CONFIG_SERVER_URI: ${CONFIG_SERVER_URI}
+      POSTGRES_HOST: iam-service-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: ${IAM_SERVICE_DB_NAME}
+      POSTGRES_USER: ${IAM_SERVICE_DB_USER}
+      POSTGRES_PASSWORD: ${IAM_SERVICE_DB_PASSWORD}
+    ports:
+      - "${IAM_SERVICE_HOST_PORT}:8081"
+    networks:
+      - jameofit-network
+
+  communication-service:
+    image: communication-service:local
+    container_name: communication-service
+    depends_on:
+      communication-service-mongodb:
+        condition: service_healthy
+      config-service:
+        condition: service_started
+      eureka-service:
+        condition: service_started
+    environment:
+      CONFIG_SERVER_URI: ${CONFIG_SERVER_URI}
+      MONGO_HOST: communication-service-mongodb
+      MONGO_PORT: 27017
+      MONGO_DATABASE: ${COMMUNICATION_SERVICE_MONGO_DATABASE}
+      MONGO_USER: ${COMMUNICATION_SERVICE_MONGO_USER}
+      MONGO_PASSWORD: ${COMMUNICATION_SERVICE_MONGO_PASSWORD}
+      MONGO_AUTH_DB: ${COMMUNICATION_SERVICE_MONGO_AUTH_DB}
+    ports:
+      - "${COMMUNICATION_SERVICE_HOST_PORT}:8090"
+    networks:
+      - jameofit-network
+
+  goals-service:
+    image: goals-service:local
+    container_name: goals-service
+    depends_on:
+      goals-service-postgres:
+        condition: service_healthy
+      config-service:
+        condition: service_started
+      eureka-service:
+        condition: service_started
+    environment:
+      CONFIG_SERVER_URI: ${CONFIG_SERVER_URI}
+      POSTGRES_HOST: goals-service-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: ${GOALS_SERVICE_DB_NAME}
+      POSTGRES_USER: ${GOALS_SERVICE_DB_USER}
+      POSTGRES_PASSWORD: ${GOALS_SERVICE_DB_PASSWORD}
+    ports:
+      - "${GOALS_SERVICE_HOST_PORT}:8083"
+    networks:
+      - jameofit-network
+
+  meal-plans-service:
+    image: meal-plans-service:local
+    container_name: meal-plans-service
+    depends_on:
+      meal-plans-service-postgres:
+        condition: service_healthy
+      config-service:
+        condition: service_started
+      eureka-service:
+        condition: service_started
+    environment:
+      CONFIG_SERVER_URI: ${CONFIG_SERVER_URI}
+      POSTGRES_HOST: meal-plans-service-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: ${MEAL_PLANS_SERVICE_DB_NAME}
+      POSTGRES_USER: ${MEAL_PLANS_SERVICE_DB_USER}
+      POSTGRES_PASSWORD: ${MEAL_PLANS_SERVICE_DB_PASSWORD}
+    ports:
+      - "${MEAL_PLANS_SERVICE_HOST_PORT}:8084"
+    networks:
+      - jameofit-network
+
+  profiles-service:
+    image: profiles-service:local
+    container_name: profiles-service
+    depends_on:
+      profiles-service-postgres:
+        condition: service_healthy
+      config-service:
+        condition: service_started
+      eureka-service:
+        condition: service_started
+    environment:
+      CONFIG_SERVER_URI: ${CONFIG_SERVER_URI}
+      POSTGRES_HOST: profiles-service-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: ${PROFILES_SERVICE_DB_NAME}
+      POSTGRES_USER: ${PROFILES_SERVICE_DB_USER}
+      POSTGRES_PASSWORD: ${PROFILES_SERVICE_DB_PASSWORD}
+    ports:
+      - "${PROFILES_SERVICE_HOST_PORT}:8086"
+    networks:
+      - jameofit-network
+
+  recipes-service:
+    image: recipes-service:local
+    container_name: recipes-service
+    depends_on:
+      recipes-service-postgres:
+        condition: service_healthy
+      config-service:
+        condition: service_started
+      eureka-service:
+        condition: service_started
+    environment:
+      CONFIG_SERVER_URI: ${CONFIG_SERVER_URI}
+      POSTGRES_HOST: recipes-service-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: ${RECIPES_SERVICE_DB_NAME}
+      POSTGRES_USER: ${RECIPES_SERVICE_DB_USER}
+      POSTGRES_PASSWORD: ${RECIPES_SERVICE_DB_PASSWORD}
+    ports:
+      - "${RECIPES_SERVICE_HOST_PORT}:8087"
+    networks:
+      - jameofit-network
+
+  tracking-service:
+    image: tracking-service:local
+    container_name: tracking-service
+    depends_on:
+      tracking-service-postgres:
+        condition: service_healthy
+      config-service:
+        condition: service_started
+      eureka-service:
+        condition: service_started
+    environment:
+      CONFIG_SERVER_URI: ${CONFIG_SERVER_URI}
+      POSTGRES_HOST: tracking-service-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: ${TRACKING_SERVICE_DB_NAME}
+      POSTGRES_USER: ${TRACKING_SERVICE_DB_USER}
+      POSTGRES_PASSWORD: ${TRACKING_SERVICE_DB_PASSWORD}
+    ports:
+      - "${TRACKING_SERVICE_HOST_PORT}:8089"
+    networks:
+      - jameofit-network
+
+volumes:
+  iam-service-postgres-data:
+  goals-service-postgres-data:
+  meal-plans-service-postgres-data:
+  profiles-service-postgres-data:
+  recipes-service-postgres-data:
+  tracking-service-postgres-data:
+  communication-service-mongodb-data:
+
+networks:
+  jameofit-network:
+    external: true
