@@ -43,6 +43,9 @@ OPENAPI_HTTP_SERVICES=(
   tracking-service
 )
 
+EUREKA_APP_MAX_ATTEMPTS=150
+EUREKA_APP_SLEEP_SECONDS=2
+
 if [ ! -f "${ENV_FILE}" ]; then
   echo "[ERROR] ${ENV_FILE} not found."
   echo "Run scripts/gcp-load-secrets.sh first."
@@ -211,19 +214,19 @@ main() {
 
   log "Starting iam-service..."
   compose_up iam-service
-  wait_eureka_app "IAM-SERVICE"
+  wait_eureka_app "IAM-SERVICE" "${EUREKA_APP_MAX_ATTEMPTS}" "${EUREKA_APP_SLEEP_SECONDS}"
 
   log "Starting domain services..."
   compose_up "${DOMAIN_SERVICES[@]}"
 
   for app_name in "${DOMAIN_EUREKA_APPS[@]}"; do
-    wait_eureka_app "${app_name}"
+    wait_eureka_app "${app_name}" "${EUREKA_APP_MAX_ATTEMPTS}" "${EUREKA_APP_SLEEP_SECONDS}"
   done
 
   log "Starting gateway-service..."
   compose_up gateway-service
   wait_http "gateway-service" "http://127.0.0.1:${GATEWAY_SERVICE_PORT}/actuator/health"
-  wait_eureka_app "GATEWAY-SERVICE"
+  wait_eureka_app "GATEWAY-SERVICE" "${EUREKA_APP_MAX_ATTEMPTS}" "${EUREKA_APP_SLEEP_SECONDS}"
 
   log "Containers:"
   "${COMPOSE[@]}" ps
