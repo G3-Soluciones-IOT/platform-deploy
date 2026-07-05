@@ -200,6 +200,18 @@ main() {
     "iam-service" \
     "${SPRING_PROFILES_ACTIVE}" \
     "spring.jpa.hibernate.naming.physical-strategy"
+  wait_config_property \
+    "gateway-service" \
+    "${SPRING_PROFILES_ACTIVE}" \
+    "spring.security.oauth2.resource-server.jwt.issuer-uri"
+  wait_config_property \
+    "gateway-service" \
+    "${SPRING_PROFILES_ACTIVE}" \
+    "auth0.audience"
+  wait_config_property \
+    "gateway-service" \
+    "${SPRING_PROFILES_ACTIVE}" \
+    "legacy.jwt.enabled"
 
   for service_name in "${OPENAPI_HTTP_SERVICES[@]}"; do
     wait_config_property \

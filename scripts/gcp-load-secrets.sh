@@ -43,6 +43,14 @@ if [[ ",${COMPOSE_PROFILES:-}," == *,communication,* ]]; then
   validate_image_tag COMMUNICATION_SERVICE_IMAGE_TAG
 fi
 
+: "${AUTH0_ISSUER_URI:?AUTH0_ISSUER_URI is required, for example https://your-tenant.us.auth0.com/}"
+: "${AUTH0_AUDIENCE:?AUTH0_AUDIENCE is required and must match the Auth0 API identifier}"
+
+if [[ "${AUTH0_ISSUER_URI}" != */ ]]; then
+  echo "[ERROR] AUTH0_ISSUER_URI must include the trailing slash."
+  exit 1
+fi
+
 read_secret() {
   local secret_id="$1"
   gcloud secrets versions access latest --secret="${secret_id}" --project="${PROJECT_ID}"
@@ -95,6 +103,12 @@ printf '%s\n' \
   'GATEWAY_SERVICE_PORT=8080' \
   'GATEWAY_BIND_ADDRESS=0.0.0.0' \
   'CONFIG_SERVER_URI=http://config-service:8888' \
+  "AUTH0_ISSUER_URI=${AUTH0_ISSUER_URI}" \
+  "AUTH0_AUDIENCE=${AUTH0_AUDIENCE}" \
+  "LEGACY_JWT_ENABLED=${LEGACY_JWT_ENABLED:-true}" \
+  "LEGACY_JWKS_ENABLED=${LEGACY_JWKS_ENABLED:-true}" \
+  "LEGACY_JWT_ISSUER=${LEGACY_JWT_ISSUER:-iam-service}" \
+  "LEGACY_JWT_JWK_SET_URI=${LEGACY_JWT_JWK_SET_URI:-http://iam-service:8081/api/v1/jwks/.well-known/jwks.json}" \
   'EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service:8761/eureka/' \
   "IAM_SPRING_DATASOURCE_URL=${IAM_SPRING_DATASOURCE_URL}" \
   "IAM_SPRING_DATASOURCE_USERNAME=${IAM_SPRING_DATASOURCE_USERNAME}" \
