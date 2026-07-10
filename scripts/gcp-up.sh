@@ -59,6 +59,39 @@ OPENAPI_HTTP_SERVICES=(
   nutrition-ai-service
 )
 
+REQUIRED_RUNTIME_VARS=(
+  IAM_SPRING_DATASOURCE_URL
+  IAM_SPRING_DATASOURCE_USERNAME
+  IAM_SPRING_DATASOURCE_PASSWORD
+  GOALS_SPRING_DATASOURCE_URL
+  GOALS_SPRING_DATASOURCE_USERNAME
+  GOALS_SPRING_DATASOURCE_PASSWORD
+  MEAL_PLANS_SPRING_DATASOURCE_URL
+  MEAL_PLANS_SPRING_DATASOURCE_USERNAME
+  MEAL_PLANS_SPRING_DATASOURCE_PASSWORD
+  PAYMENTS_SPRING_DATASOURCE_URL
+  PAYMENTS_SPRING_DATASOURCE_USERNAME
+  PAYMENTS_SPRING_DATASOURCE_PASSWORD
+  NUTRITIONIST_SPRING_DATASOURCE_URL
+  NUTRITIONIST_SPRING_DATASOURCE_USERNAME
+  NUTRITIONIST_SPRING_DATASOURCE_PASSWORD
+  PROFILES_SPRING_DATASOURCE_URL
+  PROFILES_SPRING_DATASOURCE_USERNAME
+  PROFILES_SPRING_DATASOURCE_PASSWORD
+  RECIPES_SPRING_DATASOURCE_URL
+  RECIPES_SPRING_DATASOURCE_USERNAME
+  RECIPES_SPRING_DATASOURCE_PASSWORD
+  TRACKING_SPRING_DATASOURCE_URL
+  TRACKING_SPRING_DATASOURCE_USERNAME
+  TRACKING_SPRING_DATASOURCE_PASSWORD
+  IOT_SPRING_DATASOURCE_URL
+  IOT_SPRING_DATASOURCE_USERNAME
+  IOT_SPRING_DATASOURCE_PASSWORD
+  NUTRITION_AI_SPRING_DATASOURCE_URL
+  NUTRITION_AI_SPRING_DATASOURCE_USERNAME
+  NUTRITION_AI_SPRING_DATASOURCE_PASSWORD
+)
+
 EUREKA_APP_MAX_ATTEMPTS=150
 EUREKA_APP_SLEEP_SECONDS=2
 
@@ -135,6 +168,7 @@ wait_eureka_app() {
   local max_attempts="${2:-60}"
   local sleep_seconds="${3:-2}"
   local url="http://127.0.0.1:${EUREKA_SERVICE_PORT}/eureka/apps/${app_name}"
+  local service_name
 
   log "Waiting for Eureka registration: ${app_name}"
 
@@ -147,6 +181,11 @@ wait_eureka_app() {
     sleep "${sleep_seconds}"
   done
 
+  service_name="$(echo "${app_name}" | tr '[:upper:]' '[:lower:]')"
+  log "Eureka registration failed for ${app_name}. Container status:"
+  "${COMPOSE[@]}" ps "${service_name}" || true
+  log "Recent logs for ${service_name}:"
+  "${COMPOSE[@]}" logs --tail=200 "${service_name}" || true
   fail "${app_name} did not register as UP in Eureka"
 }
 
@@ -190,6 +229,10 @@ main() {
 
   for variable_name in "${REQUIRED_IMAGE_TAGS[@]}"; do
     validate_image_tag "${variable_name}"
+  done
+
+  for variable_name in "${REQUIRED_RUNTIME_VARS[@]}"; do
+    read_env_value "${variable_name}" >/dev/null
   done
 
   if [[ ",${ACTIVE_COMPOSE_PROFILES}," == *,communication,* ]]; then
