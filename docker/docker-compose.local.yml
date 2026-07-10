@@ -75,19 +75,19 @@ services:
       timeout: 5s
       retries: 10
 
-  payments-service-postgres:
+  nutritionist-service-postgres:
     image: postgres:17
-    container_name: payments-service-postgres
+    container_name: nutritionist-service-postgres
     environment:
-      POSTGRES_DB: ${PAYMENTS_SERVICE_DB_NAME}
-      POSTGRES_USER: ${PAYMENTS_SERVICE_DB_USER}
-      POSTGRES_PASSWORD: ${PAYMENTS_SERVICE_DB_PASSWORD}
+      POSTGRES_DB: ${NUTRITIONIST_SERVICE_DB_NAME}
+      POSTGRES_USER: ${NUTRITIONIST_SERVICE_DB_USER}
+      POSTGRES_PASSWORD: ${NUTRITIONIST_SERVICE_DB_PASSWORD}
     volumes:
-      - payments-service-postgres-data:/var/lib/postgresql/data
+      - nutritionist-service-postgres-data:/var/lib/postgresql/data
     networks:
       - jameofit-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PAYMENTS_SERVICE_DB_USER} -d ${PAYMENTS_SERVICE_DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${NUTRITIONIST_SERVICE_DB_USER} -d ${NUTRITIONIST_SERVICE_DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -215,6 +215,8 @@ services:
       LEGACY_JWKS_ENABLED: ${LEGACY_JWKS_ENABLED}
       LEGACY_JWT_ISSUER: ${LEGACY_JWT_ISSUER}
       LEGACY_JWT_JWK_SET_URI: ${LEGACY_JWT_JWK_SET_URI}
+      SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE}
       POSTGRES_HOST: iam-service-postgres
       POSTGRES_PORT: 5432
       POSTGRES_DATABASE: ${IAM_SERVICE_DB_NAME}
@@ -231,6 +233,8 @@ services:
     depends_on:
       communication-service-mongodb:
         condition: service_healthy
+      nutritionist-service:
+        condition: service_started
       config-service:
         condition: service_started
       eureka-service:
@@ -265,6 +269,8 @@ services:
       LEGACY_JWT_ENABLED: ${LEGACY_JWT_ENABLED}
       LEGACY_JWT_ISSUER: ${LEGACY_JWT_ISSUER}
       LEGACY_JWT_JWK_SET_URI: ${LEGACY_JWT_JWK_SET_URI}
+      SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE}
       POSTGRES_HOST: goals-service-postgres
       POSTGRES_PORT: 5432
       POSTGRES_DATABASE: ${GOALS_SERVICE_DB_NAME}
@@ -292,6 +298,8 @@ services:
       LEGACY_JWT_ENABLED: ${LEGACY_JWT_ENABLED}
       LEGACY_JWT_ISSUER: ${LEGACY_JWT_ISSUER}
       LEGACY_JWT_JWK_SET_URI: ${LEGACY_JWT_JWK_SET_URI}
+      SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE}
       POSTGRES_HOST: meal-plans-service-postgres
       POSTGRES_PORT: 5432
       POSTGRES_DATABASE: ${MEAL_PLANS_SERVICE_DB_NAME}
@@ -302,15 +310,17 @@ services:
     networks:
       - jameofit-network
 
-  payments-service:
-    image: payments-service:local
-    container_name: payments-service
+  nutritionist-service:
+    image: nutritionist-service:local
+    container_name: nutritionist-service
     depends_on:
-      payments-service-postgres:
+      nutritionist-service-postgres:
         condition: service_healthy
       config-service:
         condition: service_started
       eureka-service:
+        condition: service_started
+      iam-service:
         condition: service_started
     environment:
       CONFIG_SERVER_URI: ${CONFIG_SERVER_URI}
@@ -319,15 +329,16 @@ services:
       LEGACY_JWT_ENABLED: ${LEGACY_JWT_ENABLED}
       LEGACY_JWT_ISSUER: ${LEGACY_JWT_ISSUER}
       LEGACY_JWT_JWK_SET_URI: ${LEGACY_JWT_JWK_SET_URI}
-      POSTGRES_HOST: payments-service-postgres
+      SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-internal-service-secret-key}
+      POSTGRES_HOST: nutritionist-service-postgres
       POSTGRES_PORT: 5432
-      POSTGRES_DATABASE: ${PAYMENTS_SERVICE_DB_NAME}
-      POSTGRES_USER: ${PAYMENTS_SERVICE_DB_USER}
-      POSTGRES_PASSWORD: ${PAYMENTS_SERVICE_DB_PASSWORD}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      POSTGRES_DATABASE: ${NUTRITIONIST_SERVICE_DB_NAME}
+      POSTGRES_USER: ${NUTRITIONIST_SERVICE_DB_USER}
+      POSTGRES_PASSWORD: ${NUTRITIONIST_SERVICE_DB_PASSWORD}
     ports:
-      - "${PAYMENTS_SERVICE_HOST_PORT}:8092"
+      - "${NUTRITIONIST_SERVICE_HOST_PORT}:8085"
     networks:
       - jameofit-network
 
@@ -348,6 +359,8 @@ services:
       LEGACY_JWT_ENABLED: ${LEGACY_JWT_ENABLED}
       LEGACY_JWT_ISSUER: ${LEGACY_JWT_ISSUER}
       LEGACY_JWT_JWK_SET_URI: ${LEGACY_JWT_JWK_SET_URI}
+      SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE}
       POSTGRES_HOST: profiles-service-postgres
       POSTGRES_PORT: 5432
       POSTGRES_DATABASE: ${PROFILES_SERVICE_DB_NAME}
@@ -375,6 +388,8 @@ services:
       LEGACY_JWT_ENABLED: ${LEGACY_JWT_ENABLED}
       LEGACY_JWT_ISSUER: ${LEGACY_JWT_ISSUER}
       LEGACY_JWT_JWK_SET_URI: ${LEGACY_JWT_JWK_SET_URI}
+      SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE}
       POSTGRES_HOST: recipes-service-postgres
       POSTGRES_PORT: 5432
       POSTGRES_DATABASE: ${RECIPES_SERVICE_DB_NAME}
@@ -402,6 +417,8 @@ services:
       LEGACY_JWT_ENABLED: ${LEGACY_JWT_ENABLED}
       LEGACY_JWT_ISSUER: ${LEGACY_JWT_ISSUER}
       LEGACY_JWT_JWK_SET_URI: ${LEGACY_JWT_JWK_SET_URI}
+      SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE}
       POSTGRES_HOST: tracking-service-postgres
       POSTGRES_PORT: 5432
       POSTGRES_DATABASE: ${TRACKING_SERVICE_DB_NAME}
@@ -416,7 +433,7 @@ volumes:
   iam-service-postgres-data:
   goals-service-postgres-data:
   meal-plans-service-postgres-data:
-  payments-service-postgres-data:
+  nutritionist-service-postgres-data:
   profiles-service-postgres-data:
   recipes-service-postgres-data:
   tracking-service-postgres-data:

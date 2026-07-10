@@ -15,6 +15,8 @@ x-spring-service-environment: &spring-service-environment
   LEGACY_JWKS_ENABLED: ${LEGACY_JWKS_ENABLED}
   LEGACY_JWT_ISSUER: ${LEGACY_JWT_ISSUER}
   LEGACY_JWT_JWK_SET_URI: ${LEGACY_JWT_JWK_SET_URI}
+  SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED:-true}
+  SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:-true}
 
 x-iam-datasource: &iam-datasource
   SPRING_DATASOURCE_URL: ${IAM_SPRING_DATASOURCE_URL}
@@ -31,6 +33,11 @@ x-meal-plans-datasource: &meal-plans-datasource
   SPRING_DATASOURCE_USERNAME: ${MEAL_PLANS_SPRING_DATASOURCE_USERNAME}
   SPRING_DATASOURCE_PASSWORD: ${MEAL_PLANS_SPRING_DATASOURCE_PASSWORD}
 
+x-nutritionist-datasource: &nutritionist-datasource
+  SPRING_DATASOURCE_URL: ${NUTRITIONIST_SPRING_DATASOURCE_URL}
+  SPRING_DATASOURCE_USERNAME: ${NUTRITIONIST_SPRING_DATASOURCE_USERNAME}
+  SPRING_DATASOURCE_PASSWORD: ${NUTRITIONIST_SPRING_DATASOURCE_PASSWORD}
+
 x-profiles-datasource: &profiles-datasource
   SPRING_DATASOURCE_URL: ${PROFILES_SPRING_DATASOURCE_URL}
   SPRING_DATASOURCE_USERNAME: ${PROFILES_SPRING_DATASOURCE_USERNAME}
@@ -45,6 +52,16 @@ x-tracking-datasource: &tracking-datasource
   SPRING_DATASOURCE_URL: ${TRACKING_SPRING_DATASOURCE_URL}
   SPRING_DATASOURCE_USERNAME: ${TRACKING_SPRING_DATASOURCE_USERNAME}
   SPRING_DATASOURCE_PASSWORD: ${TRACKING_SPRING_DATASOURCE_PASSWORD}
+
+x-iot-datasource: &iot-datasource
+  SPRING_DATASOURCE_URL: ${IOT_SPRING_DATASOURCE_URL}
+  SPRING_DATASOURCE_USERNAME: ${IOT_SPRING_DATASOURCE_USERNAME}
+  SPRING_DATASOURCE_PASSWORD: ${IOT_SPRING_DATASOURCE_PASSWORD}
+
+x-nutrition-ai-datasource: &nutrition-ai-datasource
+  SPRING_DATASOURCE_URL: ${NUTRITION_AI_SPRING_DATASOURCE_URL}
+  SPRING_DATASOURCE_USERNAME: ${NUTRITION_AI_SPRING_DATASOURCE_USERNAME}
+  SPRING_DATASOURCE_PASSWORD: ${NUTRITION_AI_SPRING_DATASOURCE_PASSWORD}
 
 services:
   config-service:
@@ -100,6 +117,17 @@ services:
     environment:
       <<: [*spring-service-environment, *meal-plans-datasource]
 
+  nutritionist-service:
+    <<: *service-defaults
+    image: ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/nutritionist-service:${NUTRITIONIST_SERVICE_IMAGE_TAG:?NUTRITIONIST_SERVICE_IMAGE_TAG is required}
+    depends_on:
+      - config-service
+      - eureka-service
+      - iam-service
+    environment:
+      <<: [*spring-service-environment, *nutritionist-datasource]
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-internal-service-secret-key}
+
   profiles-service:
     <<: *service-defaults
     image: ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/profiles-service:${PROFILES_SERVICE_IMAGE_TAG:?PROFILES_SERVICE_IMAGE_TAG is required}
@@ -130,6 +158,33 @@ services:
     environment:
       <<: [*spring-service-environment, *tracking-datasource]
 
+  iot-service:
+    <<: *service-defaults
+    image: ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/iot-service:${IOT_SERVICE_IMAGE_TAG:?IOT_SERVICE_IMAGE_TAG is required}
+    depends_on:
+      - config-service
+      - eureka-service
+      - iam-service
+    environment:
+      <<: [*spring-service-environment, *iot-datasource]
+
+  nutrition-ai-service:
+    <<: *service-defaults
+    image: ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/nutrition-ai-service:${NUTRITION_AI_SERVICE_IMAGE_TAG:?NUTRITION_AI_SERVICE_IMAGE_TAG is required}
+    depends_on:
+      - config-service
+      - eureka-service
+      - iam-service
+      - goals-service
+      - profiles-service
+      - tracking-service
+    environment:
+      <<: [*spring-service-environment, *nutrition-ai-datasource]
+      GCP_LOCATION: ${GCP_LOCATION:-us-central1}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      NUTRITION_AI_INTERNAL_TOKEN: ${NUTRITION_AI_INTERNAL_TOKEN:-internal-service-secret-key}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-internal-service-secret-key}
+
   communication-service:
     <<: *service-defaults
     profiles: ["communication"]
@@ -138,6 +193,7 @@ services:
       - config-service
       - eureka-service
       - iam-service
+      - nutritionist-service
     environment:
       <<: *spring-service-environment
       SPRING_MONGODB_URI: ${COMMUNICATION_MONGODB_URI:-}
@@ -150,10 +206,13 @@ services:
       - eureka-service
       - iam-service
       - goals-service
-      - meal-plans-service      
+      - meal-plans-service
+      - nutritionist-service
       - profiles-service
       - recipes-service
       - tracking-service
+      - iot-service
+      - nutrition-ai-service
     environment:
       <<: *spring-service-environment
     ports:
