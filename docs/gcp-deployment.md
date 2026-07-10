@@ -22,6 +22,7 @@ export IAM_SERVICE_IMAGE_TAG=sha-REPLACE_WITH_IAM_COMMIT
 export GATEWAY_SERVICE_IMAGE_TAG=sha-REPLACE_WITH_GATEWAY_COMMIT
 export GOALS_SERVICE_IMAGE_TAG=sha-REPLACE_WITH_GOALS_COMMIT
 export MEAL_PLANS_SERVICE_IMAGE_TAG=sha-REPLACE_WITH_MEAL_PLANS_COMMIT
+export PAYMENTS_SERVICE_IMAGE_TAG=sha-REPLACE_WITH_PAYMENTS_COMMIT
 export PROFILES_SERVICE_IMAGE_TAG=sha-REPLACE_WITH_PROFILES_COMMIT
 export RECIPES_SERVICE_IMAGE_TAG=sha-REPLACE_WITH_RECIPES_COMMIT
 export TRACKING_SERVICE_IMAGE_TAG=sha-REPLACE_WITH_TRACKING_COMMIT
@@ -31,12 +32,15 @@ export TRACKING_SERVICE_IMAGE_TAG=sha-REPLACE_WITH_TRACKING_COMMIT
 ```
 
 `gcp-load-secrets.sh` reads a URL, username and password secret for each
-PostgreSQL service: IAM, Goals, Meal Plans, Profiles, Recipes and Tracking. It
-writes `env/gcp.env` with mode `0600`; that generated file is ignored by Git.
+PostgreSQL service: IAM, Goals, Meal Plans, Payments, Profiles, Recipes and
+Tracking. It also reads `jameofit-stripe-secret-key` and
+`jameofit-stripe-webhook-secret`. It writes `env/gcp.env` with mode `0600`;
+that generated file is ignored by Git.
 
 The default deployment starts config-service, eureka-service, iam-service,
 gateway-service, goals-service, meal-plans-service, profiles-service,
-recipes-service and tracking-service. `communication-service` is excluded.
+payments-service, recipes-service and tracking-service. `communication-service`
+is excluded.
 
 `communication-service` is not part of the first deployment. After an
 existing MongoDB secret has been provisioned, enable it explicitly:

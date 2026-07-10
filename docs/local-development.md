@@ -13,6 +13,7 @@ Esta guia levanta el entorno local definido en `docker/docker-compose.local.yml`
   - `iam-service:local`
   - `goals-service:local`
   - `meal-plans-service:local`
+  - `payments-service:local`
   - `profiles-service:local`
   - `recipes-service:local`
   - `tracking-service:local`
@@ -27,6 +28,7 @@ Esta guia levanta el entorno local definido en `docker/docker-compose.local.yml`
 | `iam-service` | `8081` |
 | `goals-service` | `8083` |
 | `meal-plans-service` | `8084` |
+| `payments-service` | `8092` |
 | `profiles-service` | `8086` |
 | `recipes-service` | `8087` |
 | `tracking-service` | `8089` |
@@ -43,6 +45,7 @@ Cada servicio de dominio con PostgreSQL usa un contenedor propio con PostgreSQL 
 | `iam-service` | `iam-service-postgres` |
 | `goals-service` | `goals-service-postgres` |
 | `meal-plans-service` | `meal-plans-service-postgres` |
+| `payments-service` | `payments-service-postgres` |
 | `profiles-service` | `profiles-service-postgres` |
 | `recipes-service` | `recipes-service-postgres` |
 | `tracking-service` | `tracking-service-postgres` |
@@ -116,7 +119,7 @@ $env:REMOVE_VOLUMES="true"; .\scripts\local-down.ps1; Remove-Item Env:\REMOVE_VO
 2. `config-service`.
 3. `eureka-service`.
 4. `iam-service`.
-5. Servicios de dominio: `goals-service`, `meal-plans-service`, `profiles-service`, `recipes-service`, `tracking-service`, `communication-service`.
+5. Servicios de dominio: `goals-service`, `meal-plans-service`, `payments-service`, `profiles-service`, `recipes-service`, `tracking-service`, `communication-service`.
 6. `gateway-service`.
 
 El script espera `/actuator/health` en cada servicio y valida el registro en Eureka para los servicios de aplicacion y gateway.
