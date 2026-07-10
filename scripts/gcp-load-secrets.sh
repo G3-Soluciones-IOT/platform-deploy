@@ -9,21 +9,8 @@ readonly ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 readonly ENV_DIR="${ROOT_DIR}/env"
 readonly ENV_FILE="${ENV_DIR}/gcp.env"
 
-readonly REQUIRED_IMAGE_TAGS=(
-  CONFIG_SERVICE_IMAGE_TAG
-  EUREKA_SERVICE_IMAGE_TAG
-  IAM_SERVICE_IMAGE_TAG
-  GATEWAY_SERVICE_IMAGE_TAG
-  GOALS_SERVICE_IMAGE_TAG
-  MEAL_PLANS_SERVICE_IMAGE_TAG
-  PAYMENTS_SERVICE_IMAGE_TAG
-  NUTRITIONIST_SERVICE_IMAGE_TAG
-  PROFILES_SERVICE_IMAGE_TAG
-  RECIPES_SERVICE_IMAGE_TAG
-  TRACKING_SERVICE_IMAGE_TAG
-  IOT_SERVICE_IMAGE_TAG
-  NUTRITION_AI_SERVICE_IMAGE_TAG
-)
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/gcp-services.sh"
 
 validate_image_tag() {
   local variable_name="$1"
@@ -39,13 +26,11 @@ validate_image_tag() {
   fi
 }
 
+mapfile -t REQUIRED_IMAGE_TAGS < <(gcp_service_image_tag_vars "${COMPOSE_PROFILES:-}")
+
 for variable_name in "${REQUIRED_IMAGE_TAGS[@]}"; do
   validate_image_tag "${variable_name}"
 done
-
-if [[ ",${COMPOSE_PROFILES:-}," == *,communication,* ]]; then
-  validate_image_tag COMMUNICATION_SERVICE_IMAGE_TAG
-fi
 
 : "${AUTH0_ISSUER_URI:?AUTH0_ISSUER_URI is required, for example https://your-tenant.us.auth0.com/}"
 : "${AUTH0_AUDIENCE:?AUTH0_AUDIENCE is required and must match the Auth0 API identifier}"

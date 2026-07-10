@@ -5,6 +5,9 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/env/gcp.env"
 
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/gcp-services.sh"
+
 if [ ! -f "${ENV_FILE}" ]; then
   echo "[ERROR] ${ENV_FILE} not found."
   exit 1
@@ -19,23 +22,7 @@ CONFIG_SERVICE_PORT="${CONFIG_SERVICE_PORT:-8888}"
 EUREKA_SERVICE_PORT="${EUREKA_SERVICE_PORT:-8761}"
 GATEWAY_SERVICE_PORT="${GATEWAY_SERVICE_PORT:-8080}"
 
-EUREKA_APPS=(
-  IAM-SERVICE
-  GOALS-SERVICE
-  MEAL-PLANS-SERVICE
-  PAYMENTS-SERVICE
-  NUTRITIONIST-SERVICE
-  PROFILES-SERVICE
-  RECIPES-SERVICE
-  TRACKING-SERVICE
-  IOT-SERVICE
-  NUTRITION-AI-SERVICE
-  GATEWAY-SERVICE
-)
-
-if [[ ",${COMPOSE_PROFILES:-}," == *,communication,* ]]; then
-  EUREKA_APPS+=(COMMUNICATION-SERVICE)
-fi
+mapfile -t EUREKA_APPS < <(gcp_all_eureka_apps "${COMPOSE_PROFILES:-}")
 
 check_http() {
   local name="$1"

@@ -94,6 +94,59 @@ the script intentionally does not invent or call domain endpoints.
 `communication-service` is not checked unless its profile is introduced with a
 confirmed endpoint in a later change.
 
+## Deploy one changed service
+
+Use `gcp-up.sh` for a first boot, recovery, or a full platform rollout. For the
+normal loop after changing a single service, update only that service:
+
+```bash
+./scripts/gcp-deploy-service.sh payments-service sha-REPLACE_WITH_PAYMENTS_COMMIT
+```
+
+The script updates the service image tag in `env/gcp.env`, pulls the image,
+recreates only that container with `--no-deps`, and waits for the expected
+Eureka registration. If the service fails to register, it prints container
+status and recent logs.
+
+If `env/gcp.env` already has the desired tag, omit the second argument:
+
+```bash
+./scripts/gcp-deploy-service.sh payments-service
+```
+
+For development or staging, you can refresh immutable tags from Artifact
+Registry instead of looking them up manually:
+
+```bash
+./scripts/gcp-refresh-image-tags.sh payments-service
+./scripts/gcp-deploy-service.sh payments-service
+```
+
+Without service arguments, `gcp-refresh-image-tags.sh` updates every active
+service in `env/gcp.env` to the newest Artifact Registry tag matching
+`sha-<7-hex-character>`. Use explicit tags for production releases when you
+need a fully reviewed version lock.
+
+The GCP service inventory lives in `config/gcp-services.env`. Add new services
+there once, then the GCP scripts derive image-tag variables, Eureka apps,
+OpenAPI checks and datasource variables from that registry.
+
+## Workflow responsibilities
+
+Use the service workflows with separate responsibilities:
+
+- `ci.yml`: PR and branch validation. It should compile and run tests, but not
+  publish deployable images.
+- `docker-build.yml`: optional PR/branch validation for Dockerfile and image
+  packaging. Keep it only if Dockerfile validation is useful for that service.
+- `cd.yml`: main-branch release. It builds and pushes the immutable
+  `sha-<commit>` image used by `platform-deploy`.
+
+The reusable Artifact Registry workflow now exposes `image_tag`, `image_sha`
+and `image_latest` outputs. A later service `cd.yml` can use those outputs to
+open a PR or commit against `platform-deploy` and update the corresponding
+`*_IMAGE_TAG` without recalculating the tag.
+
 To stop the stack without deleting named volumes:
 
 ```bash
