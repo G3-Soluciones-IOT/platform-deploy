@@ -12,35 +12,47 @@ REQUIRED_IMAGE_TAGS=(
   IAM_SERVICE_IMAGE_TAG
   GATEWAY_SERVICE_IMAGE_TAG
   GOALS_SERVICE_IMAGE_TAG
-  MEAL_PLANS_SERVICE_IMAGE_TAG  
+  MEAL_PLANS_SERVICE_IMAGE_TAG
+  NUTRITIONIST_SERVICE_IMAGE_TAG
   PROFILES_SERVICE_IMAGE_TAG
   RECIPES_SERVICE_IMAGE_TAG
   TRACKING_SERVICE_IMAGE_TAG
+  IOT_SERVICE_IMAGE_TAG
+  NUTRITION_AI_SERVICE_IMAGE_TAG
 )
 
 DOMAIN_SERVICES=(
   goals-service
-  meal-plans-service  
+  meal-plans-service
+  nutritionist-service
   profiles-service
   recipes-service
   tracking-service
+  iot-service
+  nutrition-ai-service
 )
 
 DOMAIN_EUREKA_APPS=(
   GOALS-SERVICE
   MEAL-PLANS-SERVICE
+  NUTRITIONIST-SERVICE
   PROFILES-SERVICE
   RECIPES-SERVICE
   TRACKING-SERVICE
+  IOT-SERVICE
+  NUTRITION-AI-SERVICE
 )
 
 OPENAPI_HTTP_SERVICES=(
   iam-service
   goals-service
   meal-plans-service
+  nutritionist-service
   profiles-service
   recipes-service
   tracking-service
+  iot-service
+  nutrition-ai-service
 )
 
 EUREKA_APP_MAX_ATTEMPTS=150
