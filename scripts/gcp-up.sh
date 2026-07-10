@@ -12,8 +12,7 @@ REQUIRED_IMAGE_TAGS=(
   IAM_SERVICE_IMAGE_TAG
   GATEWAY_SERVICE_IMAGE_TAG
   GOALS_SERVICE_IMAGE_TAG
-  MEAL_PLANS_SERVICE_IMAGE_TAG
-  PAYMENTS_SERVICE_IMAGE_TAG
+  MEAL_PLANS_SERVICE_IMAGE_TAG  
   PROFILES_SERVICE_IMAGE_TAG
   RECIPES_SERVICE_IMAGE_TAG
   TRACKING_SERVICE_IMAGE_TAG
@@ -21,8 +20,7 @@ REQUIRED_IMAGE_TAGS=(
 
 DOMAIN_SERVICES=(
   goals-service
-  meal-plans-service
-  payments-service
+  meal-plans-service  
   profiles-service
   recipes-service
   tracking-service
@@ -31,7 +29,6 @@ DOMAIN_SERVICES=(
 DOMAIN_EUREKA_APPS=(
   GOALS-SERVICE
   MEAL-PLANS-SERVICE
-  PAYMENTS-SERVICE
   PROFILES-SERVICE
   RECIPES-SERVICE
   TRACKING-SERVICE
@@ -41,7 +38,6 @@ OPENAPI_HTTP_SERVICES=(
   iam-service
   goals-service
   meal-plans-service
-  payments-service
   profiles-service
   recipes-service
   tracking-service

@@ -31,11 +31,6 @@ x-meal-plans-datasource: &meal-plans-datasource
   SPRING_DATASOURCE_USERNAME: ${MEAL_PLANS_SPRING_DATASOURCE_USERNAME}
   SPRING_DATASOURCE_PASSWORD: ${MEAL_PLANS_SPRING_DATASOURCE_PASSWORD}
 
-x-payments-datasource: &payments-datasource
-  SPRING_DATASOURCE_URL: ${PAYMENTS_SPRING_DATASOURCE_URL}
-  SPRING_DATASOURCE_USERNAME: ${PAYMENTS_SPRING_DATASOURCE_USERNAME}
-  SPRING_DATASOURCE_PASSWORD: ${PAYMENTS_SPRING_DATASOURCE_PASSWORD}
-
 x-profiles-datasource: &profiles-datasource
   SPRING_DATASOURCE_URL: ${PROFILES_SPRING_DATASOURCE_URL}
   SPRING_DATASOURCE_USERNAME: ${PROFILES_SPRING_DATASOURCE_USERNAME}
@@ -105,18 +100,6 @@ services:
     environment:
       <<: [*spring-service-environment, *meal-plans-datasource]
 
-  payments-service:
-    <<: *service-defaults
-    image: ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/payments-service:${PAYMENTS_SERVICE_IMAGE_TAG:?PAYMENTS_SERVICE_IMAGE_TAG is required}
-    depends_on:
-      - config-service
-      - eureka-service
-      - iam-service
-    environment:
-      <<: [*spring-service-environment, *payments-datasource]
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
-
   profiles-service:
     <<: *service-defaults
     image: ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/profiles-service:${PROFILES_SERVICE_IMAGE_TAG:?PROFILES_SERVICE_IMAGE_TAG is required}
@@ -167,8 +150,7 @@ services:
       - eureka-service
       - iam-service
       - goals-service
-      - meal-plans-service
-      - payments-service
+      - meal-plans-service      
       - profiles-service
       - recipes-service
       - tracking-service
