@@ -14,6 +14,7 @@ $RequiredImages = @(
   "iam-service:local",
   "goals-service:local",
   "meal-plans-service:local",
+  "payments-service:local",
   "nutritionist-service:local",
   "profiles-service:local",
   "recipes-service:local",
@@ -25,6 +26,7 @@ $DbServices = @(
   "iam-service-postgres",
   "goals-service-postgres",
   "meal-plans-service-postgres",
+  "payments-service-postgres",
   "nutritionist-service-postgres",
   "profiles-service-postgres",
   "recipes-service-postgres",
@@ -35,6 +37,7 @@ $DbServices = @(
 $DomainServices = @(
   "goals-service",
   "meal-plans-service",
+  "payments-service",
   "nutritionist-service",
   "profiles-service",
   "recipes-service",
@@ -49,6 +52,7 @@ $ContainersToRemove = @(
   "iam-service",
   "goals-service",
   "meal-plans-service",
+  "payments-service",
   "nutritionist-service",
   "profiles-service",
   "recipes-service",
@@ -57,6 +61,7 @@ $ContainersToRemove = @(
   "iam-service-postgres",
   "goals-service-postgres",
   "meal-plans-service-postgres",
+  "payments-service-postgres",
   "nutritionist-service-postgres",
   "profiles-service-postgres",
   "recipes-service-postgres",
@@ -240,6 +245,7 @@ Write-Log "Starting domain services..."
 
 Wait-Http "goals-service" "http://localhost:8083/actuator/health"
 Wait-Http "meal-plans-service" "http://localhost:8084/actuator/health"
+Wait-Http "payments-service" "http://localhost:8092/actuator/health"
 Wait-Http "nutritionist-service" "http://localhost:8085/actuator/health"
 Wait-Http "profiles-service" "http://localhost:8086/actuator/health"
 Wait-Http "recipes-service" "http://localhost:8087/actuator/health"
@@ -248,6 +254,7 @@ Wait-Http "communication-service" "http://localhost:8090/actuator/health"
 
 Wait-EurekaApp "GOALS-SERVICE"
 Wait-EurekaApp "MEAL-PLANS-SERVICE"
+Wait-EurekaApp "PAYMENTS-SERVICE"
 Wait-EurekaApp "NUTRITIONIST-SERVICE"
 Wait-EurekaApp "PROFILES-SERVICE"
 Wait-EurekaApp "RECIPES-SERVICE"

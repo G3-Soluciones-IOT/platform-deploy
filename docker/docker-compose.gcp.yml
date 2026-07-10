@@ -33,6 +33,11 @@ x-meal-plans-datasource: &meal-plans-datasource
   SPRING_DATASOURCE_USERNAME: ${MEAL_PLANS_SPRING_DATASOURCE_USERNAME}
   SPRING_DATASOURCE_PASSWORD: ${MEAL_PLANS_SPRING_DATASOURCE_PASSWORD}
 
+x-payments-datasource: &payments-datasource
+  SPRING_DATASOURCE_URL: ${PAYMENTS_SPRING_DATASOURCE_URL}
+  SPRING_DATASOURCE_USERNAME: ${PAYMENTS_SPRING_DATASOURCE_USERNAME}
+  SPRING_DATASOURCE_PASSWORD: ${PAYMENTS_SPRING_DATASOURCE_PASSWORD}
+
 x-nutritionist-datasource: &nutritionist-datasource
   SPRING_DATASOURCE_URL: ${NUTRITIONIST_SPRING_DATASOURCE_URL}
   SPRING_DATASOURCE_USERNAME: ${NUTRITIONIST_SPRING_DATASOURCE_USERNAME}
@@ -116,6 +121,19 @@ services:
       - iam-service
     environment:
       <<: [*spring-service-environment, *meal-plans-datasource]
+
+  payments-service:
+    <<: *service-defaults
+    image: ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/payments-service:${PAYMENTS_SERVICE_IMAGE_TAG:?PAYMENTS_SERVICE_IMAGE_TAG is required}
+    depends_on:
+      - config-service
+      - eureka-service
+      - iam-service
+    environment:
+      <<: [*spring-service-environment, *payments-datasource]
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-internal-service-secret-key}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
 
   nutritionist-service:
     <<: *service-defaults
@@ -207,6 +225,7 @@ services:
       - iam-service
       - goals-service
       - meal-plans-service
+      - payments-service
       - nutritionist-service
       - profiles-service
       - recipes-service
