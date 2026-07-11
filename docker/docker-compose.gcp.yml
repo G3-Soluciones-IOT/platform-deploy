@@ -15,6 +15,7 @@ x-spring-service-environment: &spring-service-environment
   LEGACY_JWKS_ENABLED: ${LEGACY_JWKS_ENABLED}
   LEGACY_JWT_ISSUER: ${LEGACY_JWT_ISSUER}
   LEGACY_JWT_JWK_SET_URI: ${LEGACY_JWT_JWK_SET_URI}
+  PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:-https://jameofit.duckdns.org}
   SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED:-true}
   SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:-true}
 
@@ -80,6 +81,7 @@ services:
       LEGACY_JWKS_ENABLED: ${LEGACY_JWKS_ENABLED}
       LEGACY_JWT_ISSUER: ${LEGACY_JWT_ISSUER}
       LEGACY_JWT_JWK_SET_URI: ${LEGACY_JWT_JWK_SET_URI}
+      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:-https://jameofit.duckdns.org}
     ports:
       - "127.0.0.1:${CONFIG_SERVICE_PORT}:8888"
 
@@ -101,6 +103,8 @@ services:
       - eureka-service
     environment:
       <<: [*spring-service-environment, *iam-datasource]
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-internal-service-secret-key}
+      IAM_INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-internal-service-secret-key}
 
   goals-service:
     <<: *service-defaults
@@ -155,6 +159,7 @@ services:
       - iam-service
     environment:
       <<: [*spring-service-environment, *profiles-datasource]
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-internal-service-secret-key}
 
   recipes-service:
     <<: *service-defaults

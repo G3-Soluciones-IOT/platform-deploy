@@ -20,19 +20,8 @@ REQUIRED_IMAGES=(
   "profiles-service:local"
   "recipes-service:local"
   "tracking-service:local"
-  "communication-service:local"
-)
-
-DB_SERVICES=(
-  "iam-service-postgres"
-  "goals-service-postgres"
-  "meal-plans-service-postgres"
-  "payments-service-postgres"
-  "nutritionist-service-postgres"
-  "profiles-service-postgres"
-  "recipes-service-postgres"
-  "tracking-service-postgres"
-  "communication-service-mongodb"
+  "iot-service:local"
+  "nutrition-ai-service:local"
 )
 
 DOMAIN_SERVICES=(
@@ -43,7 +32,8 @@ DOMAIN_SERVICES=(
   "profiles-service"
   "recipes-service"
   "tracking-service"
-  "communication-service"
+  "iot-service"
+  "nutrition-ai-service"
 )
 
 CONTAINERS_TO_REMOVE=(
@@ -58,6 +48,8 @@ CONTAINERS_TO_REMOVE=(
   "profiles-service"
   "recipes-service"
   "tracking-service"
+  "iot-service"
+  "nutrition-ai-service"
   "communication-service"
   "iam-service-postgres"
   "goals-service-postgres"
@@ -67,6 +59,8 @@ CONTAINERS_TO_REMOVE=(
   "profiles-service-postgres"
   "recipes-service-postgres"
   "tracking-service-postgres"
+  "iot-service-postgres"
+  "nutrition-ai-service-postgres"
   "communication-service-mongodb"
 )
 
@@ -136,28 +130,6 @@ wait_http() {
   fail "${name} did not become ready: ${url}"
 }
 
-wait_container_healthy() {
-  local container="$1"
-  local max_attempts="${2:-60}"
-  local sleep_seconds="${3:-2}"
-
-  log "Waiting for healthy container: ${container}"
-
-  for ((attempt = 1; attempt <= max_attempts; attempt++)); do
-    local status
-    status="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "${container}" 2>/dev/null || true)"
-
-    if [[ "${status}" == "healthy" || "${status}" == "running" ]]; then
-      log "${container} is ${status}"
-      return 0
-    fi
-
-    sleep "${sleep_seconds}"
-  done
-
-  fail "Container did not become healthy/running: ${container}"
-}
-
 wait_eureka_app() {
   local app_name="$1"
   local max_attempts="${2:-60}"
@@ -188,13 +160,6 @@ main() {
   ensure_network
   remove_previous_containers
 
-  log "Starting databases..."
-  "${COMPOSE[@]}" up -d "${DB_SERVICES[@]}"
-
-  for db_service in "${DB_SERVICES[@]}"; do
-    wait_container_healthy "${db_service}"
-  done
-
   log "Starting config-service..."
   "${COMPOSE[@]}" up -d config-service
   wait_http "config-service" "http://localhost:8888/actuator/health"
@@ -218,7 +183,8 @@ main() {
   wait_http "profiles-service" "http://localhost:8086/actuator/health"
   wait_http "recipes-service" "http://localhost:8087/actuator/health"
   wait_http "tracking-service" "http://localhost:8089/actuator/health"
-  wait_http "communication-service" "http://localhost:8090/actuator/health"
+  wait_http "iot-service" "http://localhost:8093/actuator/health"
+  wait_http "nutrition-ai-service" "http://localhost:8091/actuator/health"
 
   wait_eureka_app "GOALS-SERVICE"
   wait_eureka_app "MEAL-PLANS-SERVICE"
@@ -227,7 +193,8 @@ main() {
   wait_eureka_app "PROFILES-SERVICE"
   wait_eureka_app "RECIPES-SERVICE"
   wait_eureka_app "TRACKING-SERVICE"
-  wait_eureka_app "COMMUNICATION-SERVICE"
+  wait_eureka_app "IOT-SERVICE"
+  wait_eureka_app "NUTRITION-AI-SERVICE"
 
   log "Starting gateway-service..."
   "${COMPOSE[@]}" up -d gateway-service

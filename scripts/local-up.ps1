@@ -19,19 +19,8 @@ $RequiredImages = @(
   "profiles-service:local",
   "recipes-service:local",
   "tracking-service:local",
-  "communication-service:local"
-)
-
-$DbServices = @(
-  "iam-service-postgres",
-  "goals-service-postgres",
-  "meal-plans-service-postgres",
-  "payments-service-postgres",
-  "nutritionist-service-postgres",
-  "profiles-service-postgres",
-  "recipes-service-postgres",
-  "tracking-service-postgres",
-  "communication-service-mongodb"
+  "iot-service:local",
+  "nutrition-ai-service:local"
 )
 
 $DomainServices = @(
@@ -42,7 +31,8 @@ $DomainServices = @(
   "profiles-service",
   "recipes-service",
   "tracking-service",
-  "communication-service"
+  "iot-service",
+  "nutrition-ai-service"
 )
 
 $ContainersToRemove = @(
@@ -57,6 +47,8 @@ $ContainersToRemove = @(
   "profiles-service",
   "recipes-service",
   "tracking-service",
+  "iot-service",
+  "nutrition-ai-service",
   "communication-service",
   "iam-service-postgres",
   "goals-service-postgres",
@@ -66,6 +58,8 @@ $ContainersToRemove = @(
   "profiles-service-postgres",
   "recipes-service-postgres",
   "tracking-service-postgres",
+  "iot-service-postgres",
+  "nutrition-ai-service-postgres",
   "communication-service-mongodb"
 )
 
@@ -123,7 +117,13 @@ function Remove-PreviousContainers {
   Write-Log "Removing previous local containers if they exist..."
 
   foreach ($Container in $ContainersToRemove) {
-    docker rm -f $Container *> $null
+    try {
+      & docker rm -f $Container *> $null
+    }
+    catch {
+      # Missing containers are expected after a clean Docker reset.
+    }
+    $global:LASTEXITCODE = 0
   }
 }
 
@@ -155,29 +155,6 @@ function Wait-Http {
   }
 
   Fail "$Name did not become ready: $Url"
-}
-
-function Wait-ContainerReady {
-  param(
-    [string]$Container,
-    [int]$MaxAttempts = 60,
-    [int]$SleepSeconds = 2
-  )
-
-  Write-Log "Waiting for container: $Container"
-
-  for ($Attempt = 1; $Attempt -le $MaxAttempts; $Attempt++) {
-    $Status = docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' $Container 2>$null
-
-    if ($Status -eq "healthy" -or $Status -eq "running") {
-      Write-Log "$Container is $Status"
-      return
-    }
-
-    Start-Sleep -Seconds $SleepSeconds
-  }
-
-  Fail "Container did not become ready: $Container"
 }
 
 function Wait-EurekaApp {
@@ -220,13 +197,6 @@ Require-Images
 Ensure-Network
 Remove-PreviousContainers
 
-Write-Log "Starting databases..."
-& docker @ComposeArgs up -d @DbServices
-
-foreach ($DbService in $DbServices) {
-  Wait-ContainerReady $DbService
-}
-
 Write-Log "Starting config-service..."
 & docker @ComposeArgs up -d config-service
 Wait-Http "config-service" "http://localhost:8888/actuator/health"
@@ -250,7 +220,8 @@ Wait-Http "nutritionist-service" "http://localhost:8085/actuator/health"
 Wait-Http "profiles-service" "http://localhost:8086/actuator/health"
 Wait-Http "recipes-service" "http://localhost:8087/actuator/health"
 Wait-Http "tracking-service" "http://localhost:8089/actuator/health"
-Wait-Http "communication-service" "http://localhost:8090/actuator/health"
+Wait-Http "iot-service" "http://localhost:8093/actuator/health"
+Wait-Http "nutrition-ai-service" "http://localhost:8091/actuator/health"
 
 Wait-EurekaApp "GOALS-SERVICE"
 Wait-EurekaApp "MEAL-PLANS-SERVICE"
@@ -259,7 +230,8 @@ Wait-EurekaApp "NUTRITIONIST-SERVICE"
 Wait-EurekaApp "PROFILES-SERVICE"
 Wait-EurekaApp "RECIPES-SERVICE"
 Wait-EurekaApp "TRACKING-SERVICE"
-Wait-EurekaApp "COMMUNICATION-SERVICE"
+Wait-EurekaApp "IOT-SERVICE"
+Wait-EurekaApp "NUTRITION-AI-SERVICE"
 
 Write-Log "Starting gateway-service..."
 & docker @ComposeArgs up -d gateway-service

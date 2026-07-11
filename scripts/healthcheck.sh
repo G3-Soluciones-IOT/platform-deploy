@@ -42,7 +42,8 @@ check_http "nutritionist-service" "http://localhost:8085/actuator/health"
 check_http "profiles-service" "http://localhost:8086/actuator/health"
 check_http "recipes-service" "http://localhost:8087/actuator/health"
 check_http "tracking-service" "http://localhost:8089/actuator/health"
-check_http "communication-service" "http://localhost:8090/actuator/health"
+check_http "iot-service" "http://localhost:8093/actuator/health"
+check_http "nutrition-ai-service" "http://localhost:8091/actuator/health"
 check_http "gateway-service" "http://localhost:8080/actuator/health"
 
 echo
@@ -52,11 +53,13 @@ echo
 check_eureka_app "IAM-SERVICE"
 check_eureka_app "GOALS-SERVICE"
 check_eureka_app "MEAL-PLANS-SERVICE"
+check_eureka_app "PAYMENTS-SERVICE"
 check_eureka_app "NUTRITIONIST-SERVICE"
 check_eureka_app "PROFILES-SERVICE"
 check_eureka_app "RECIPES-SERVICE"
 check_eureka_app "TRACKING-SERVICE"
-check_eureka_app "COMMUNICATION-SERVICE"
+check_eureka_app "IOT-SERVICE"
+check_eureka_app "NUTRITION-AI-SERVICE"
 check_eureka_app "GATEWAY-SERVICE"
 
 echo
