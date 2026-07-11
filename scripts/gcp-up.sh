@@ -12,6 +12,7 @@ source "${SCRIPT_DIR}/lib/gcp-services.sh"
 
 EUREKA_APP_MAX_ATTEMPTS=150
 EUREKA_APP_SLEEP_SECONDS=2
+EUREKA_APP_PROGRESS_INTERVAL_ATTEMPTS="${EUREKA_APP_PROGRESS_INTERVAL_ATTEMPTS:-10}"
 
 if [ ! -f "${ENV_FILE}" ]; then
   echo "[ERROR] ${ENV_FILE} not found."
@@ -85,26 +86,129 @@ wait_eureka_app() {
   local app_name="$1"
   local max_attempts="${2:-60}"
   local sleep_seconds="${3:-2}"
-  local url="http://127.0.0.1:${EUREKA_SERVICE_PORT}/eureka/apps/${app_name}"
-  local service_name
 
-  log "Waiting for Eureka registration: ${app_name}"
+  wait_eureka_apps "${app_name}" "${max_attempts}" "${sleep_seconds}" "${app_name}"
+}
+
+eureka_app_is_up() {
+  local app_name="$1"
+  local url="http://127.0.0.1:${EUREKA_SERVICE_PORT}/eureka/apps/${app_name}"
+
+  curl -fsS "${url}" 2>/dev/null | grep -q "<status>UP</status>"
+}
+
+eureka_app_service_name() {
+  local app_name="$1"
+
+  echo "${app_name}" | tr '[:upper:]' '[:lower:]'
+}
+
+container_state_summary() {
+  local service_name="$1"
+  local container_id
+  local inspect_output
+
+  container_id="$("${COMPOSE[@]}" ps -q "${service_name}" 2>/dev/null || true)"
+  if [[ -z "${container_id}" ]]; then
+    echo "container=missing"
+    return 0
+  fi
+
+  inspect_output="$(docker inspect \
+    --format 'status={{.State.Status}} exit={{.State.ExitCode}} restarting={{.State.Restarting}} restarts={{.RestartCount}}' \
+    "${container_id}" 2>/dev/null || true)"
+
+  if [[ -z "${inspect_output}" ]]; then
+    echo "container=${container_id} state=unknown"
+    return 0
+  fi
+
+  echo "${inspect_output}"
+}
+
+print_service_diagnostics() {
+  local service_name="$1"
+
+  log "Container status for ${service_name}:"
+  "${COMPOSE[@]}" ps "${service_name}" || true
+  log "Recent logs for ${service_name}:"
+  "${COMPOSE[@]}" logs --tail=200 "${service_name}" || true
+}
+
+fail_if_container_stopped() {
+  local app_name="$1"
+  local service_name
+  local summary
+
+  service_name="$(eureka_app_service_name "${app_name}")"
+  summary="$(container_state_summary "${service_name}")"
+
+  if [[ "${summary}" == *"status=exited"* ||
+        "${summary}" == *"status=dead"* ||
+        "${summary}" == *"status=restarting"* ||
+        "${summary}" == *"restarting=true"* ]]; then
+    log "${app_name} cannot register because ${service_name} is not stable (${summary})."
+    print_service_diagnostics "${service_name}"
+    fail "${app_name} did not register as UP in Eureka"
+  fi
+}
+
+wait_eureka_apps() {
+  local label="$1"
+  local max_attempts="$2"
+  local sleep_seconds="$3"
+  shift 3
+  local pending=("$@")
+  local next_pending=()
+  local app_name
+  local service_name
+  local summary
+  local pending_names
+
+  if (( ${#pending[@]} == 0 )); then
+    return 0
+  fi
+
+  log "Waiting for Eureka registration: ${label}"
 
   for ((attempt = 1; attempt <= max_attempts; attempt++)); do
-    if curl -fsS "${url}" 2>/dev/null | grep -q "<status>UP</status>"; then
-      log "${app_name} is registered in Eureka"
+    next_pending=()
+
+    for app_name in "${pending[@]}"; do
+      if eureka_app_is_up "${app_name}"; then
+        log "${app_name} is registered in Eureka"
+        continue
+      fi
+
+      fail_if_container_stopped "${app_name}"
+      next_pending+=("${app_name}")
+    done
+
+    pending=("${next_pending[@]}")
+    if (( ${#pending[@]} == 0 )); then
       return 0
+    fi
+
+    if (( attempt == 1 || attempt % EUREKA_APP_PROGRESS_INTERVAL_ATTEMPTS == 0 )); then
+      pending_names="$(printf '%s ' "${pending[@]}")"
+      log "Still waiting for Eureka (${attempt}/${max_attempts}): ${pending_names}"
+
+      for app_name in "${pending[@]}"; do
+        service_name="$(eureka_app_service_name "${app_name}")"
+        summary="$(container_state_summary "${service_name}")"
+        log "  ${service_name}: ${summary}"
+      done
     fi
 
     sleep "${sleep_seconds}"
   done
 
-  service_name="$(echo "${app_name}" | tr '[:upper:]' '[:lower:]')"
-  log "Eureka registration failed for ${app_name}. Container status:"
-  "${COMPOSE[@]}" ps "${service_name}" || true
-  log "Recent logs for ${service_name}:"
-  "${COMPOSE[@]}" logs --tail=200 "${service_name}" || true
-  fail "${app_name} did not register as UP in Eureka"
+  for app_name in "${pending[@]}"; do
+    service_name="$(eureka_app_service_name "${app_name}")"
+    print_service_diagnostics "${service_name}"
+  done
+
+  fail "${label} did not register as UP in Eureka"
 }
 
 wait_config_property() {
@@ -211,9 +315,11 @@ main() {
   log "Starting domain services..."
   compose_up "${DOMAIN_SERVICES[@]}"
 
-  for app_name in "${DOMAIN_EUREKA_APPS[@]}"; do
-    wait_eureka_app "${app_name}" "${EUREKA_APP_MAX_ATTEMPTS}" "${EUREKA_APP_SLEEP_SECONDS}"
-  done
+  wait_eureka_apps \
+    "domain services" \
+    "${EUREKA_APP_MAX_ATTEMPTS}" \
+    "${EUREKA_APP_SLEEP_SECONDS}" \
+    "${DOMAIN_EUREKA_APPS[@]}"
 
   log "Starting gateway-service..."
   compose_up gateway-service
