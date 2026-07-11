@@ -106,7 +106,7 @@ Use `gcp-up.sh` for a first boot, recovery, or a full platform rollout. For the
 normal loop after changing a single service, update only that service:
 
 ```bash
-./scripts/gcp-deploy-service.sh payments-service sha-REPLACE_WITH_PAYMENTS_COMMIT
+./scripts/gcp-deploy-service.sh iot-service sha-baedfc2
 ```
 
 The script updates the service image tag in `env/gcp.env`, pulls the image,

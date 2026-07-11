@@ -197,6 +197,11 @@ main() {
     validate_image_tag_value "${effective_tag}"
   fi
 
+  # Docker Compose gives the current shell environment precedence over --env-file.
+  # Keep the process environment aligned with env/gcp.env so a stale exported
+  # SERVICE_IMAGE_TAG cannot override the tag that this script just selected.
+  export "${image_tag_var}=${effective_tag}"
+
   if [[ "${SKIP_GCLOUD_AUTH:-false}" != "true" ]]; then
     require_command gcloud
     log "Authenticating Docker with Artifact Registry..."
