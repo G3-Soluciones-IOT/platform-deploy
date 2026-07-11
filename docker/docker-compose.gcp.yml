@@ -219,6 +219,7 @@ services:
       - nutritionist-service
     environment:
       <<: *spring-service-environment
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-internal-service-secret-key}
       SPRING_MONGODB_URI: ${COMMUNICATION_MONGODB_URI:-}
 
   gateway-service:

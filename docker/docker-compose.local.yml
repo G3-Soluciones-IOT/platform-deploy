@@ -101,12 +101,21 @@ services:
     depends_on:
       nutritionist-service:
         condition: service_started
+      iam-service:
+        condition: service_started
       config-service:
         condition: service_started
       eureka-service:
         condition: service_started
     environment:
       CONFIG_SERVER_URI: ${CONFIG_SERVER_URI}
+      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL}
+      AUTH0_ISSUER_URI: ${AUTH0_ISSUER_URI}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+      LEGACY_JWT_ENABLED: ${LEGACY_JWT_ENABLED}
+      LEGACY_JWT_ISSUER: ${LEGACY_JWT_ISSUER}
+      LEGACY_JWT_JWK_SET_URI: ${LEGACY_JWT_JWK_SET_URI}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-internal-service-secret-key}
       MONGO_HOST: ${LOCAL_MONGO_HOST}
       MONGO_PORT: ${LOCAL_MONGO_PORT}
       MONGO_DATABASE: ${COMMUNICATION_SERVICE_MONGO_DATABASE}

@@ -43,16 +43,22 @@ gateway-service, goals-service, meal-plans-service, profiles-service,
 recipes-service, tracking-service, iot-service, nutritionist-service and
 nutrition-ai-service. `communication-service` is excluded.
 
-`communication-service` is not part of the first deployment. After an
-existing MongoDB secret has been provisioned, enable it explicitly:
+`communication-service` is optional and uses MongoDB Atlas instead of Cloud SQL.
+Create a Secret Manager secret containing the full Atlas connection string, for
+example `mongodb+srv://.../communication_db?...`, then enable it explicitly:
 
 ```bash
-export COMMUNICATION_MONGODB_SECRET_ID=EXISTING_SECRET_MANAGER_SECRET_ID
+export COMMUNICATION_MONGODB_SECRET_ID=jameofit-communication-mongodb-uri
 export COMMUNICATION_SERVICE_IMAGE_TAG=sha-REPLACE_WITH_COMMUNICATION_COMMIT
 export COMPOSE_PROFILES=communication
 ./scripts/gcp-load-secrets.sh
 ./scripts/gcp-up.sh
 ```
+
+The generated `env/gcp.env` will include `COMMUNICATION_MONGODB_URI`, consumed
+by `communication-service` as `SPRING_MONGODB_URI`. The service remains excluded
+from the public Swagger UI because its primary contract is authenticated REST
+plus STOMP over `/ws`.
 
 Each PostgreSQL service receives its own Cloud SQL datasource variables. Legacy
 `jameofit-db-url`, `jameofit-db-username`, and `jameofit-db-password` secrets
